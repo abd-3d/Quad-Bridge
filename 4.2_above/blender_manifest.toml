@@ -1,0 +1,20 @@
+schema_version = "1.0.0"
+
+id = "quad_bridge"
+version = "1.0.1"
+
+# Display information
+name = "Quad Bridge"
+tagline = "Connect Edge flow using Quads automatically"
+maintainer = "abd3d"
+type = "add-on"
+
+
+blender_version_min = "4.2.0"
+
+license = ["GPL-2.0-or-later"]
+
+tags = ["Mesh", "Modeling", "Bridge"]
+
+[build]
+paths_src = ["."]
