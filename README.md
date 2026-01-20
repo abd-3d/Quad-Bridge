@@ -1,3 +1,4 @@
 # Quad-Bridge
 Blender addon to connect two edge loop using quads
-![Demo](https://raw.githubusercontent.com/abd-3d/quad_bridge/main/gif/1g.gif)
+
+<img src="https://github.com/abd-3d/quad_bridge/raw/main/gif/1g.gif" width="600">
