@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Quad Bridge",
     "author": "abd3d",
-    "version": (1, 0, 0),
+    "version": (1, 0, 5),
     "blender": (3, 0, 0),
     "location": "View3D > Edit Mode > Right Click > Quad Bridge",
     "description": "Bridge your edge flow with quad automatically",
@@ -12,31 +12,13 @@ import bpy
 import bmesh
 from mathutils import Vector
 
-# Try to import the updater. If the user installs this as a single file by mistake,
-
-# it handles the error gracefully.
-
 try:
-
     from . import addon_updater_ops
-
 except ImportError:
-
     addon_updater_ops = None
 
-
-# =========================================================================
-
-# PREFERENCES (REQUIRED FOR AUTO UPDATER)
-
-# =========================================================================
-
-
 class QuadBridgePreferences(bpy.types.AddonPreferences):
-
     bl_idname = __package__
-
-    # Addon updater preferences
 
     auto_check_update: bpy.props.BoolProperty(
         name="Auto-check for Update",
@@ -76,23 +58,12 @@ class QuadBridgePreferences(bpy.types.AddonPreferences):
     )
 
     def draw(self, context):
-
         layout = self.layout
-
-        # Draw the updater UI
-
         if addon_updater_ops:
-
             addon_updater_ops.update_settings_ui(self, context)
-
         else:
-
             layout.label(text="Updater module not found.")
 
-
-# =========================================================================
-# HELPER: TOPOLOGY ANALYZER
-# =========================================================================
 def analyze_selection_type(bm, selected_edges):
     vert_links = {v: [] for e in selected_edges for v in e.verts}
     for e in selected_edges:
@@ -148,10 +119,6 @@ def analyze_selection_type(bm, selected_edges):
 
     return topo_type, top, bot
 
-
-# =========================================================================
-# HELPER: MATH & SAMPLING
-# =========================================================================
 def get_chain_data(chain):
     lengths = []
     total = 0.0
@@ -160,7 +127,6 @@ def get_chain_data(chain):
         lengths.append(l)
         total += l
     return lengths, total
-
 
 def sample_chain_at_u(chain, u, lengths, total_length):
     if total_length == 0:
@@ -174,25 +140,17 @@ def sample_chain_at_u(chain, u, lengths, total_length):
         current_dist += length
     return chain[-1].co
 
-
 def get_u_at_index(index, lengths, total_length):
     if total_length == 0:
         return 0.0
     dist = sum(lengths[:index])
     return dist / total_length
 
-
-# =========================================================================
-# BRIDGE ALGORITHMS
-# =========================================================================
-
-
 def bridge_one_to_two_logic(bm, top, bot, method):
     t0, t1 = top[0], top[1]
     b0, b1, b2 = bot[0], bot[1], bot[2]
 
     if method == 0:
-        # Diamond
         m1 = bm.verts.new(t0.co.lerp(b1.co, 0.55))
         m2 = bm.verts.new(t1.co.lerp(b1.co, 0.55))
         bm.verts.ensure_lookup_table()
@@ -201,7 +159,6 @@ def bridge_one_to_two_logic(bm, top, bot, method):
         bm.faces.new((t0, t1, m2, m1))
         bm.faces.new((m1, m2, b1))
     elif method == 1:
-        # Left Flow
         p_r = (t1.co + b2.co) * 0.5
         p_c = (t0.co + b1.co + p_r) / 3.0
         vr, vc = bm.verts.new(p_r), bm.verts.new(p_c)
@@ -210,7 +167,6 @@ def bridge_one_to_two_logic(bm, top, bot, method):
         bm.faces.new((vc, b1, b2, vr))
         bm.faces.new((t0, vc, vr, t1))
     elif method == 2:
-        # Right Flow
         p_l = (t0.co + b0.co) * 0.5
         p_c = (t1.co + b1.co + p_l) / 3.0
         vl, vc = bm.verts.new(p_l), bm.verts.new(p_c)
@@ -218,7 +174,6 @@ def bridge_one_to_two_logic(bm, top, bot, method):
         bm.faces.new((t1, vc, b1, b2))
         bm.faces.new((vl, b0, b1, vc))
         bm.faces.new((t0, vl, vc, t1))
-
 
 def bridge_odd_gap_outer(bm, top, bot, n_top, n_bot):
     mid_verts = []
@@ -234,7 +189,6 @@ def bridge_odd_gap_outer(bm, top, bot, n_top, n_bot):
     for i in range(n_top):
         bm.faces.new((top[i], mid_verts[i], mid_verts[i + 1], top[i + 1]))
         bm.faces.new((mid_verts[i], bot[i + 1], bot[i + 2], mid_verts[i + 1]))
-
 
 def bridge_odd_gap_inner(bm, top, bot, n_top, n_bot):
     top_center_left = n_top // 2
@@ -271,7 +225,6 @@ def bridge_odd_gap_inner(bm, top, bot, n_top, n_bot):
     bm.faces.new((top[top_center_left], top[top_center_right], v16, v15))
     bm.faces.new((v15, v16, bot[bot_center_right], bot[bot_center_left]))
 
-
 def bridge_even_gap_two_outer(bm, top, bot, n_top, n_bot):
     mid_verts = []
     tl, tt = get_chain_data(top)
@@ -288,7 +241,6 @@ def bridge_even_gap_two_outer(bm, top, bot, n_top, n_bot):
     bm.faces.new((top[0], mid_verts[0], bot[1], bot[0]))
     bm.faces.new((top[-1], bot[-1], bot[-2], mid_verts[-1]))
 
-
 def bridge_even_gap_two_inner(bm, top, bot, n_top, n_bot):
     side = (n_top - 2) // 2
     for i in range(side):
@@ -297,7 +249,6 @@ def bridge_even_gap_two_inner(bm, top, bot, n_top, n_bot):
     for i in range(side):
         bm.faces.new((top[ts + i], top[ts + i + 1], bot[bs + i + 1], bot[bs + i]))
     bridge_even_two_to_n(bm, top[side : ts + 1], bot[side : bs + 1], 4)
-
 
 def bridge_odd_one_to_n(bm, top, bot, n_bot):
     if n_bot == 1:
@@ -333,7 +284,6 @@ def bridge_odd_one_to_n(bm, top, bot, n_bot):
             )
     bm.faces.new((rows[-1][0], bot[nr], bot[nr + 1], rows[-1][1]))
 
-
 def bridge_even_one_to_n(bm, top, bot, n_bot):
     nr = n_bot // 2
     rows = []
@@ -366,7 +316,6 @@ def bridge_even_one_to_n(bm, top, bot, n_bot):
     bm.faces.new((rows[-1][0], bot[mid - 1], bot[mid]))
     bm.faces.new((rows[-1][1], bot[mid], bot[mid + 1]))
     bm.faces.new((rows[-1][0], bot[mid], rows[-1][1]))
-
 
 def bridge_even_two_to_n(bm, top, bot, n_bot):
     if n_bot == 2:
@@ -409,7 +358,6 @@ def bridge_even_two_to_n(bm, top, bot, n_bot):
     for i in range(nr):
         bm.faces.new((r_chain[i], r_chain[i + 1], bot[n_bot - 1 - i], bot[n_bot - i]))
 
-
 def bridge_odd_two_to_n(bm, top, bot, n_bot):
     def get_top_u(u):
         return (
@@ -433,7 +381,6 @@ def bridge_odd_two_to_n(bm, top, bot, n_bot):
         bm.faces.new((tri_L, tri_R, bot[2], bot[1]))
     else:
         bridge_odd_one_to_n(bm, [tri_L, tri_R], bot[1:-1], n_bot - 2)
-
 
 def bridge_general_n_m(bm, top, bot, n_top, n_bot, flow_1to2_method):
     if n_top % 2 == 0 and n_bot % 2 == 1:
@@ -532,12 +479,6 @@ def bridge_general_n_m(bm, top, bot, n_top, n_bot, flow_1to2_method):
     else:
         bridge_even_two_to_n(bm, c_top, c_bot, cn_bot)
 
-
-# =========================================================================
-# OPERATOR
-# =========================================================================
-
-
 class MESH_OT_QuadBridge(bpy.types.Operator):
     bl_idname = "mesh.quad_bridge"
     bl_label = "Quad Bridge"
@@ -563,25 +504,30 @@ class MESH_OT_QuadBridge(bpy.types.Operator):
 
         selected_edges = [e for e in bm.edges if e.select]
         if not selected_edges:
-            # If nothing is selected, we try to execute anyway (which will fail/cancel gracefully)
-            # or you could return {'CANCELLED'} here to stop the popup from appearing on empty selection.
             return self.execute(context)
 
-        # Analyze selection to determine the default type
-        t_type, _, _ = analyze_selection_type(bm, selected_edges)
+        t_type, top, bot = analyze_selection_type(bm, selected_edges)
+        
+        should_popup = False
+        if t_type == "1_TO_2":
+            should_popup = True
+        elif t_type == "GAP":
+            should_popup = True
+
         if t_type:
             self.topo_type = t_type
 
-        # CHANGE: Always invoke the properties dialog, regardless of type
-        return context.window_manager.invoke_props_dialog(self)
+        if should_popup:
+            return context.window_manager.invoke_props_dialog(self)
+        else:
+            return self.execute(context)
 
     def draw(self, context):
         layout = self.layout
-        # CHANGE: Logic updated to ensure 'General' types also see the Flow options
+        
         if self.topo_type == "GAP":
             layout.prop(self, "loop_method", expand=True)
-        else:
-            # "1_TO_2" and "GENERAL" both use the flow method logic
+        elif self.topo_type == "1_TO_2":
             layout.prop(self, "flow_method", expand=True)
 
     def execute(self, context):
@@ -596,7 +542,7 @@ class MESH_OT_QuadBridge(bpy.types.Operator):
             return {"CANCELLED"}
 
         t_type, top, bot = analyze_selection_type(bm, selected_edges)
-        # Ensure we use the detected type if the property wasn't set correctly
+        
         if t_type:
             self.topo_type = t_type
 
@@ -609,6 +555,7 @@ class MESH_OT_QuadBridge(bpy.types.Operator):
 
         if t_type == "1_TO_2":
             bridge_one_to_two_logic(bm, top, bot, flow_m)
+            
         elif t_type == "GAP":
             if n_top % 2 == 1:
                 if loop_m == 0:
@@ -620,8 +567,8 @@ class MESH_OT_QuadBridge(bpy.types.Operator):
                     bridge_even_gap_two_outer(bm, top, bot, n_top, n_bot)
                 else:
                     bridge_even_gap_two_inner(bm, top, bot, n_top, n_bot)
+
         elif n_top == 1 and n_bot == 3:
-            # Special 1-to-3 hardcoded logic
             v1, v2 = top
             v3, v4, v5, v6 = bot
             w = (v5.co - v4.co) * 0.5
@@ -631,14 +578,19 @@ class MESH_OT_QuadBridge(bpy.types.Operator):
             bm.faces.new((v7, v4, v5, v8))
             bm.faces.new((v8, v5, v6, v2))
             bm.faces.new((v1, v7, v8, v2))
+            
         elif n_top == 1 and n_bot % 2 == 1:
             bridge_odd_one_to_n(bm, top, bot, n_bot)
+            
         elif n_top == 1 and n_bot % 2 == 0:
             bridge_even_one_to_n(bm, top, bot, n_bot)
+            
         elif n_top == 2 and n_bot % 2 == 0:
             bridge_even_two_to_n(bm, top, bot, n_bot)
+            
         elif n_top == 2 and n_bot % 2 == 1:
             bridge_odd_two_to_n(bm, top, bot, n_bot)
+            
         else:
             bridge_general_n_m(bm, top, bot, n_top, n_bot, flow_m)
 
@@ -646,63 +598,31 @@ class MESH_OT_QuadBridge(bpy.types.Operator):
         bmesh.update_edit_mesh(me)
         return {"FINISHED"}
 
-
-# =========================================================================
-
-# REGISTRATION
-
-# =========================================================================
-
-
 classes = (
     QuadBridgePreferences,
     MESH_OT_QuadBridge,
 )
 
-
 def menu_func(self, context):
-
     self.layout.operator(MESH_OT_QuadBridge.bl_idname, icon="MOD_WIREFRAME")
 
-
 def register():
-
-    # 1. Register updater
-
     if addon_updater_ops:
-
         addon_updater_ops.register(bl_info)
 
-    # 2. Register classes
-
     for cls in classes:
-
         bpy.utils.register_class(cls)
 
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.prepend(menu_func)
 
-    # Note: We do NOT need to run .registry.update() here because
-
-    # we manually configured the settings inside addon_updater_ops.py
-
-
 def unregister():
-
-    # 1. Unregister updater
-
     if addon_updater_ops:
-
         addon_updater_ops.unregister()
-
-    # 2. Unregister classes
 
     bpy.types.VIEW3D_MT_edit_mesh_context_menu.remove(menu_func)
 
     for cls in reversed(classes):
-
         bpy.utils.unregister_class(cls)
 
-
 if __name__ == "__main__":
-
     register()
