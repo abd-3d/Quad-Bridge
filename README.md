@@ -1,6 +1,6 @@
 # Quad Bridge - Blender Addon
 
-A powerful Blender addon that creates clean quad-based bridge geometry between edge selections with precise control and professional results.
+A powerful Blender addon that creates quad topology based on your edge loop automatically with one click.
 
 ## Download
 
@@ -20,7 +20,6 @@ If you find this addon useful, consider supporting its continued development:
 
 - **Clean Quad Topology**: Generates all-quad geometry for optimal subdivision and animation
 - **Intuitive Workflow**: Seamlessly integrated into Blender's right-click context menu
-- **Precise Control**: Fine-tune bridge parameters for perfect results
 - **Fast & Efficient**: Quickly connect edge loops with professional quality
 
 ---
