@@ -26,6 +26,7 @@ If you find this addon useful, consider supporting its continued development:
 
 <img src="https://github.com/abd-3d/quad_bridge/blob/main/gif/truck_gif.gif" width="600">
 <img src="https://github.com/abd-3d/quad_bridge/blob/main/gif/gt.gif" width="600">
+<img src="https://github.com/abd-3d/quad_bridge/blob/main/gif/high_1.gif" width="600">
 
 ---
 
